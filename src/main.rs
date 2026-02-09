@@ -1,13 +1,12 @@
 use axum::{
     Router,
     extract::Multipart,
-    response::Html,
+    http::StatusCode,
+    response::{Html, IntoResponse},
     routing::{get, post},
 };
 use tracing::debug;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
-
-//const DEFAULT_PATH = ""
 
 #[tokio::main]
 async fn main() {
@@ -30,7 +29,7 @@ async fn main() {
     axum::serve(listener, app).await.unwrap();
 }
 
-async fn upload(mut multipart: Multipart) {
+async fn upload(mut multipart: Multipart) -> impl IntoResponse {
     while let Some(field) = multipart.next_field().await.expect("Something went wrong") {
         let name = field.name().unwrap().to_string();
         let file_name = field
@@ -41,15 +40,20 @@ async fn upload(mut multipart: Multipart) {
 
         debug!("Length of `{}`, name: {}", name, file_name);
 
-        let save_file = std::fs::write(
-            format!("./upload/{}", file_name),
-            data.await.expect("Cannot upload file"),
-        );
-        match save_file {
-            Ok(_) => debug!("Saved {} succesfully!", file_name),
-            Err(error) => debug!("Something went wrong with {}: {}", file_name, error),
+        let formatted_path = format!("./upload/{}", file_name);
+
+        if let Ok(true) = tokio::fs::try_exists(&formatted_path).await {
+            return (StatusCode::BAD_REQUEST, "Upload failed");
+        }
+
+        if let Err(_) =
+            tokio::fs::write(&formatted_path, data.await.expect("Failed to upload file")).await
+        {
+            return (StatusCode::BAD_REQUEST, "Upload failed");
         }
     }
+
+    (StatusCode::CREATED, "Image uploaded")
 }
 
 async fn show_form() -> Html<&'static str> {
