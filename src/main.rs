@@ -4,18 +4,29 @@ use axum::{
     response::Html,
     routing::{get, post},
 };
+use tracing::debug;
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 //const DEFAULT_PATH = ""
 
 #[tokio::main]
 async fn main() {
+    tracing_subscriber::registry()
+        .with(
+            tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| {
+                format!("{}=debug,tower_http=debug", env!("CARGO_CRATE_NAME")).into()
+            }),
+        )
+        .with(tracing_subscriber::fmt::layer())
+        .init();
+
     let app = Router::new()
         .route("/health", get(health))
         .route("/upload_form", get(show_form))
         .route("/upload", post(upload));
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
-    println!("Listening on http://localhost:3000");
+    debug!("Listening on {}", listener.local_addr().unwrap());
     axum::serve(listener, app).await.unwrap();
 }
 
@@ -28,15 +39,15 @@ async fn upload(mut multipart: Multipart) {
             .to_string();
         let data = field.bytes();
 
-        println!("Length of `{}`, name: {}", name, file_name);
+        debug!("Length of `{}`, name: {}", name, file_name);
 
         let save_file = std::fs::write(
             format!("./upload/{}", file_name),
             data.await.expect("Cannot upload file"),
         );
         match save_file {
-            Ok(_) => println!("Saved {} succesfully!", file_name),
-            Err(error) => println!("Something went wrong with {}: {}", file_name, error),
+            Ok(_) => debug!("Saved {} succesfully!", file_name),
+            Err(error) => debug!("Something went wrong with {}: {}", file_name, error),
         }
     }
 }
