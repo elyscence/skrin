@@ -1,9 +1,12 @@
+use crate::utils::gen_id::generate_id;
 use axum::{
+    Json,
     body::Body,
     extract::{Multipart, Path},
     http::{StatusCode, header},
     response::{Html, IntoResponse},
 };
+use serde_json::json;
 use tokio_util::io::ReaderStream;
 use tracing::debug;
 
@@ -12,28 +15,60 @@ const UPLOAD_PATH: &str = "./upload";
 pub async fn upload(mut multipart: Multipart) -> impl IntoResponse {
     while let Some(field) = multipart.next_field().await.expect("Something went wrong") {
         let name = field.name().unwrap().to_string();
-        let file_name = field
-            .file_name()
-            .expect("Cannot find file name")
-            .to_string();
+
+        let raw_name = field.file_name().unwrap_or("file").to_string();
+
+        let file_extension = raw_name.split(".").last().unwrap_or("png");
+
         let data = field.bytes();
 
-        debug!("Length of `{}`, name: {}", name, file_name);
+        let file_name = generate_id(5);
 
-        let formatted_path = format!("{}/{}", UPLOAD_PATH, file_name);
+        debug!("Length of `{}`, name: {}", name, file_extension);
+
+        let formatted_path = format!("{}/{}.{}", UPLOAD_PATH, file_name, file_extension);
+        let url_path = format!(
+            "http://localhost:3000/file/{}.{}",
+            file_name, file_extension
+        );
 
         if let Ok(true) = tokio::fs::try_exists(&formatted_path).await {
-            return (StatusCode::BAD_REQUEST, "Upload failed");
+            return (
+                StatusCode::CONFLICT,
+                Json(json!({
+                    "error": "Upload failed",
+                    "success": false
+                })),
+            );
         }
 
         if let Err(_) =
             tokio::fs::write(&formatted_path, data.await.expect("Failed to upload file")).await
         {
-            return (StatusCode::BAD_REQUEST, "Upload failed");
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({
+                    "error": "Upload failed",
+                    "success": false
+                })),
+            );
         }
-    }
 
-    (StatusCode::CREATED, "Image uploaded")
+        return (
+            StatusCode::CREATED,
+            Json(json!({
+                "url": url_path,
+                "success": true
+            })),
+        );
+    }
+    (
+        StatusCode::BAD_REQUEST,
+        Json(json!({
+            "error": "No file provided in multipart",
+            "success": false
+        })),
+    )
 }
 
 pub async fn get_file(
