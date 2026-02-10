@@ -1,5 +1,7 @@
+mod error;
 mod utils;
 mod web;
+mod models;
 
 use axum::{
     Router,

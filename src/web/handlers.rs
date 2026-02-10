@@ -3,105 +3,68 @@ use axum::{
     Json,
     body::Body,
     extract::{Multipart, Path},
-    http::{StatusCode, header},
+    http::header,
     response::{Html, IntoResponse},
 };
-use serde_json::json;
+
 use tokio_util::io::ReaderStream;
 use tracing::debug;
 
+use crate::error::AppError;
+use crate::models::response::UploadResponse;
+
 const UPLOAD_PATH: &str = "./upload";
 
-pub async fn upload(mut multipart: Multipart) -> impl IntoResponse {
-    while let Some(field) = multipart.next_field().await.expect("Something went wrong") {
-        let name = field.name().unwrap().to_string();
+// TODO: сделать impl IntoResponse for AppError, просто better handling ошибок
 
-        let raw_name = field.file_name().unwrap_or("file").to_string();
+pub async fn upload(mut multipart: Multipart) -> Result<Json<UploadResponse>, AppError> {
+    let field = multipart
+        .next_field()
+        .await?
+        .ok_or(AppError::NoFileProvided)?;
 
-        let file_extension = raw_name.split(".").last().unwrap_or("png");
+    let raw_name = field.file_name().ok_or(AppError::InvalidInput)?.to_string();
 
-        let data = field.bytes();
+    let file_extension = raw_name.split(".").last().unwrap_or("png");
 
-        let file_name = generate_id(5);
+    let data = field.bytes().await?;
 
-        debug!("Length of `{}`, name: {}", name, file_extension);
+    let file_name = generate_id(5);
 
-        let formatted_path = format!("{}/{}.{}", UPLOAD_PATH, file_name, file_extension);
-        let url_path = format!(
-            "http://localhost:3000/file/{}.{}",
-            file_name, file_extension
-        );
+    debug!("Uploading file: {}.{}", file_name, file_extension);
 
-        if let Ok(true) = tokio::fs::try_exists(&formatted_path).await {
-            return (
-                StatusCode::CONFLICT,
-                Json(json!({
-                    "error": "Upload failed",
-                    "success": false
-                })),
-            );
-        }
+    let formatted_path = format!("{}/{}.{}", UPLOAD_PATH, file_name, file_extension);
+    let url_path = format!(
+        "http://localhost:3000/file/{}.{}",
+        file_name, file_extension
+    );
 
-        if let Err(_) =
-            tokio::fs::write(&formatted_path, data.await.expect("Failed to upload file")).await
-        {
-            return (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(json!({
-                    "error": "Upload failed",
-                    "success": false
-                })),
-            );
-        }
-
-        return (
-            StatusCode::CREATED,
-            Json(json!({
-                "url": url_path,
-                "success": true
-            })),
-        );
+    if tokio::fs::try_exists(&formatted_path).await? {
+        return Err(AppError::AlreadyExists);
     }
-    (
-        StatusCode::BAD_REQUEST,
-        Json(json!({
-            "error": "No file provided in multipart",
-            "success": false
-        })),
-    )
+
+    tokio::fs::write(&formatted_path, data).await?;
+
+    Ok(Json(UploadResponse {
+        url: url_path,
+        success: true,
+    }))
 }
 
-pub async fn get_file(
-    Path(file_name): Path<String>,
-) -> Result<impl IntoResponse, (StatusCode, String)> {
-    let upload_dir = std::path::PathBuf::from(UPLOAD_PATH)
-        .canonicalize()
-        .map_err(|_| {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                "Upload dir error".to_string(),
-            )
-        })?;
+pub async fn get_file(Path(file_name): Path<String>) -> Result<impl IntoResponse, AppError> {
+    let upload_dir = std::path::PathBuf::from(UPLOAD_PATH).canonicalize()?;
 
     let formatted_path = upload_dir.join(&file_name);
 
     if !formatted_path.starts_with(&upload_dir) {
-        return Err((StatusCode::BAD_REQUEST, "Invalid file path".to_string()));
+        return Err(AppError::InvalidInput);
     }
 
-    let file = tokio::fs::File::open(&formatted_path)
-        .await
-        .map_err(|err| (StatusCode::NOT_FOUND, format!("File not found: {}", err)))?;
+    let file = tokio::fs::File::open(&formatted_path).await?;
 
-    let content_type = match mime_guess::from_path(&formatted_path).first_raw() {
-        Some(mime) => mime,
-        None => {
-            return Err((
-                StatusCode::BAD_REQUEST,
-                "MIME Type couldn't be determined".to_string(),
-            ));
-        }
-    };
+    let content_type = mime_guess::from_path(&formatted_path)
+        .first_raw()
+        .ok_or(AppError::NoMimeType)?;
 
     let stream = ReaderStream::new(file);
     let body = Body::from_stream(stream);
