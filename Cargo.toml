@@ -5,7 +5,9 @@ edition = "2024"
 
 [dependencies]
 axum = { version = "0.8.8", features = ["multipart"] }
-dotenv = "0.15.0"
+chrono = "0.4.43"
+clap = { version = "4.5.58", features = ["derive"] }
+dotenvy = "0.15.7"
 mime_guess = "2.0.5"
 rand = "0.10.0"
 serde = "1.0.228"
@@ -15,3 +17,4 @@ tokio = { version = "1.49.0", features = ["full"] }
 tokio-util = { version = "0.7.18", features = ["io"] }
 tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.22", features = ["env-filter"] }
+uuid = { version = "1.21.0", features = ["v4"] }

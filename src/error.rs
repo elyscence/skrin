@@ -10,6 +10,13 @@ pub enum AppError {
     AlreadyExists,
     NoMimeType,
     IoError(std::io::Error),
+    DatabaseError(sqlx::Error),
+}
+
+pub enum AuthError {
+    NoTokenProvided,
+    InvalidToken,
+    DatabaseError(sqlx::Error),
 }
 
 impl IntoResponse for AppError {
@@ -26,6 +33,32 @@ impl IntoResponse for AppError {
             AppError::MultipartError(err) => {
                 tracing::error!("Multipart Error: {}", err);
                 (StatusCode::BAD_REQUEST, "Bad input")
+            }
+            AppError::DatabaseError(err) => {
+                tracing::error!("Database Error: {}", err);
+                (StatusCode::INTERNAL_SERVER_ERROR, "Server error")
+            }
+        };
+
+        (
+            status,
+            Json(json!({
+                "error": message,
+                "success": false
+            })),
+        )
+            .into_response()
+    }
+}
+
+impl IntoResponse for AuthError {
+    fn into_response(self) -> axum::response::Response {
+        let (status, message) = match self {
+            AuthError::NoTokenProvided => (StatusCode::UNAUTHORIZED, "No token provided"),
+            AuthError::InvalidToken => (StatusCode::UNAUTHORIZED, "Invalid token"),
+            AuthError::DatabaseError(err) => {
+                tracing::error!("Database error: {}", err);
+                (StatusCode::INTERNAL_SERVER_ERROR, "Server error")
             }
         };
 
@@ -46,8 +79,20 @@ impl From<std::io::Error> for AppError {
     }
 }
 
+impl From<sqlx::Error> for AppError {
+    fn from(err: sqlx::Error) -> Self {
+        AppError::DatabaseError(err)
+    }
+}
+
 impl From<MultipartError> for AppError {
     fn from(err: MultipartError) -> Self {
         AppError::MultipartError(err)
+    }
+}
+
+impl From<sqlx::Error> for AuthError {
+    fn from(err: sqlx::Error) -> Self {
+        AuthError::DatabaseError(err)
     }
 }
