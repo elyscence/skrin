@@ -65,7 +65,7 @@ async fn main() {
         .route("/health", get(handlers::health))
         .route("/upload_form", get(handlers::show_form))
         .route("/file/{file_name}", get(handlers::get_file))
-        .route("/api/stats", get(handlers::get_stats_route))
+        .route("/api/stats", get(handlers::get_stats_route)) // TODO: пофиксить максимально уродливую страницу app.html со stats
         .fallback_service(ServeDir::new("frontend"))
         .with_state(state);
 

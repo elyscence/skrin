@@ -1,8 +1,8 @@
 use crate::{
-    db::operations::{delete_image, get_stats, get_user_images, save_image},
+    db::operations::{delete_image, get_stats, get_user_images, increment_views, save_image},
     error::AppError,
     middlewares::auth::AuthUser,
-    models::{image::Image, response::UploadResponse, stats::StatsResponse},
+    models::{file_query::FileQuery, image::Image, response::UploadResponse, stats::StatsResponse},
     state::AppState,
     utils::gen_id::generate_id,
 };
@@ -10,7 +10,7 @@ use crate::{
 use axum::{
     Extension, Json,
     body::Body,
-    extract::{Multipart, Path, State},
+    extract::{Multipart, Path, Query, State},
     http::header,
     response::{Html, IntoResponse},
 };
@@ -94,6 +94,7 @@ pub async fn upload(
 pub async fn get_file(
     State(state): State<AppState>,
     Path(file_name): Path<String>,
+    Query(query): Query<FileQuery>,
 ) -> Result<impl IntoResponse, AppError> {
     let upload_dir = std::path::PathBuf::from(state.config.upload_path).canonicalize()?;
 
@@ -118,6 +119,12 @@ pub async fn get_file(
         (header::CONTENT_TYPE, content_type),
         (header::CONTENT_DISPOSITION, "inline"),
     ];
+
+    if query.thumb != Some(true) {
+        if let Err(e) = increment_views(&state.pool, &file_name).await {
+            tracing::warn!("Failed to increment views for {}: {}", file_name, e);
+        }
+    }
 
     Ok((headers, body))
 }

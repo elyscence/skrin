@@ -530,9 +530,9 @@
                 images.forEach(img => {
                     const rawExt = img.mime_type ? img.mime_type.split('/')[1] : 'bin';
                     const ext = rawExt.toUpperCase();
-                    
+
                     const isImage = ['JPG','JPEG','PNG','GIF','WEBP','BMP','SVG'].includes(ext);
-                    
+
                     const fileUrl = `${BASE_URL}/file/${img.filename}.${rawExt}`;
 
                     const card = document.createElement('div');
@@ -546,7 +546,7 @@
                         </button>
                         <div class="thumbnail-area">
                             ${isImage
-                                ? `<img src="${fileUrl}" alt="${img.filename}" loading="lazy">`
+                                ? `<img src="${fileUrl}?thumb=true" alt="${img.filename}" loading="lazy">`
                                 : `<svg class="thumbnail-placeholder" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>`
                             }
                             <span class="file-badge">${ext}</span>

@@ -71,3 +71,19 @@ pub async fn get_stats(pool: &SqlitePool) -> Result<StatsResponse, sqlx::Error> 
     .fetch_one(pool)
     .await
 }
+
+pub async fn increment_views(pool: &SqlitePool, img_name: &str) -> Result<bool, sqlx::Error> {
+    let image_name = img_name
+        .rsplit_once(".")
+        .map(|(name, _)| name)
+        .unwrap_or(img_name);
+
+    let result = sqlx::query!(
+        "UPDATE images SET views = views + 1 WHERE filename = ?",
+        image_name
+    )
+    .execute(pool)
+    .await?;
+
+    Ok(result.rows_affected() > 0)
+}
