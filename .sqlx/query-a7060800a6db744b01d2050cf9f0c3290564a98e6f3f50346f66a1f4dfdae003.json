@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE images SET deleted_at = datetime('now') WHERE id = ? AND uploaded_by = ? AND deleted_at IS NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "a7060800a6db744b01d2050cf9f0c3290564a98e6f3f50346f66a1f4dfdae003"
+}

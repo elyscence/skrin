@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE images SET views = views + 1 WHERE filename = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "f93d11542b25fd28b40cd6a5dcbd893c4fc3c68693c2e5533976549fca0da930"
+}

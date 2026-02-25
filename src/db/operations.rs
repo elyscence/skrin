@@ -51,7 +51,7 @@ pub async fn delete_image(
     image_id: &str,
     user_id: &str,
 ) -> Result<bool, sqlx::Error> {
-    let result = sqlx::query!("UPDATE images SET deleted_at = datetime('now') WHERE id = ? AND uploaded_by = ? AND deleted_at IS NULL", image_id, user_id)
+    let result: sqlx::sqlite::SqliteQueryResult = sqlx::query!("UPDATE images SET deleted_at = datetime('now') WHERE id = ? AND uploaded_by = ? AND deleted_at IS NULL", image_id, user_id)
         .execute(pool)
         .await?;
 
@@ -78,7 +78,7 @@ pub async fn increment_views(pool: &SqlitePool, img_name: &str) -> Result<bool, 
         .map(|(name, _)| name)
         .unwrap_or(img_name);
 
-    let result = sqlx::query!(
+    let result: sqlx::sqlite::SqliteQueryResult = sqlx::query!(
         "UPDATE images SET views = views + 1 WHERE filename = ?",
         image_name
     )

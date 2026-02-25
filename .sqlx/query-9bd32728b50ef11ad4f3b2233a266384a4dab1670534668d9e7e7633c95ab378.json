@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO images (id, filename, mime_type, size, uploaded_by, uploaded_at, views)\n        VALUES (?, ?, ?, ?, ?, ?, ?)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 7
+    },
+    "nullable": []
+  },
+  "hash": "9bd32728b50ef11ad4f3b2233a266384a4dab1670534668d9e7e7633c95ab378"
+}

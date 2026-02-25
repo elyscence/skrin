@@ -1,0 +1,32 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT\n                COUNT(*) as total_images,\n                COALESCE(SUM(size), 0) as total_size,\n                COALESCE(SUM(views), 0) as total_views\n            FROM images\n            WHERE deleted_at IS NULL",
+  "describe": {
+    "columns": [
+      {
+        "name": "total_images",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "total_size",
+        "ordinal": 1,
+        "type_info": "Integer"
+      },
+      {
+        "name": "total_views",
+        "ordinal": 2,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "03b16884131493ceccfc3291a7ecb458da56fd361b549878a5737aab5bd97fb9"
+}
