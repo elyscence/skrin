@@ -10,11 +10,12 @@ mod web;
 use axum::{
     Router,
     middleware::from_fn_with_state,
-    routing::{get, post},
+    routing::{delete, get, post},
 };
 use sqlx::{migrate::MigrateDatabase, sqlite::SqlitePool};
 
 use state::AppState;
+use tower_http::services::ServeDir;
 use tracing::info;
 
 use crate::{config::Config, middlewares::auth::auth, web::handlers};
@@ -54,7 +55,9 @@ async fn main() {
     let state = AppState::new(pool, config.clone());
 
     let protected_router = Router::new()
-        .route("/upload", post(handlers::upload))
+        .route("/api/upload", post(handlers::upload))
+        .route("/api/my", get(handlers::my_images))
+        .route("/api/{image_id}", delete(handlers::delete_image_route))
         .route_layer(from_fn_with_state(state.clone(), auth));
 
     let app = Router::new()
@@ -62,6 +65,8 @@ async fn main() {
         .route("/health", get(handlers::health))
         .route("/upload_form", get(handlers::show_form))
         .route("/file/{file_name}", get(handlers::get_file))
+        .route("/api/stats", get(handlers::get_stats_route))
+        .fallback_service(ServeDir::new("frontend"))
         .with_state(state);
 
     let listener = tokio::net::TcpListener::bind(&config.bind_address)

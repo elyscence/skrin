@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Skrin — Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Inter:wght@400;500;600&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-base: #0B0C10;
+            --bg-surface: #121318;
+            --bg-elevated: rgba(255,255,255,0.03);
+            --text-title: #FFFFFF;
+            --text-primary: #E2E4E9;
+            --text-secondary: #8B909A;
+            --text-tertiary: #525660;
+            --accent-primary: #60A5FA;
+            --accent-hover: #3B82F6;
+            --aurora-1: #3B82F6;
+            --aurora-2: #8B5CF6;
+            --aurora-3: #10B981;
+            --border-subtle: rgba(255,255,255,0.06);
+            --border-hover: rgba(255,255,255,0.12);
+            --focus-ring: rgba(96,165,250,0.4);
+            --radius-xl: 24px;
+            --radius-lg: 16px;
+            --radius-md: 10px;
+            --radius-sm: 6px;
+            --ease-out: cubic-bezier(0.16,1,0.3,1);
+            --transition: 0.25s var(--ease-out);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; outline: none; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background-color: var(--bg-base);
+            color: var(--text-primary);
+            overflow: hidden;
+            height: 100vh;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        h1, h2, h3, .brand-font { font-family: 'Syne', sans-serif; }
+        .mono { font-family: 'DM Mono', monospace; }
+
+        /* ══════════════════════════════════════════════════
+           APP LAYOUT
+        ══════════════════════════════════════════════════ */
+        .app-layout {
+            height: 100vh; display: grid; grid-template-columns: 240px 1fr;
+            background: var(--bg-base);
+        }
+
+        /* ══════════════════════════════════════════════════
+           SIDEBAR
+        ══════════════════════════════════════════════════ */
+        .app-sidebar {
+            display: flex; flex-direction: column;
+            border-right: 1px solid var(--border-subtle);
+            background: var(--bg-surface);
+        }
+
+        .app-logo {
+            height: 64px; padding: 0 1.5rem;
+            display: flex; align-items: center; gap: 0.75rem;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+        .brand-dot { width: 10px; height: 10px; background: var(--text-title); border-radius: 50%; box-shadow: 0 0 10px rgba(255,255,255,0.5); }
+        .app-logo span { font-size: 1.2rem; font-weight: 800; color: var(--text-title); letter-spacing: -0.5px; }
+
+        .sidebar-nav { padding: 1.25rem 0.75rem; display: flex; flex-direction: column; gap: 0.15rem; flex: 1; }
+
+        .nav-label { padding: 0.5rem 0.75rem; font-size: 0.68rem; color: var(--text-tertiary); text-transform: uppercase; font-weight: 600; letter-spacing: 1px; margin-top: 0.5rem; }
+
+        .sidebar-link {
+            display: flex; align-items: center; gap: 0.75rem; padding: 0.55rem 0.75rem;
+            color: var(--text-secondary); border-radius: var(--radius-sm);
+            font-size: 0.875rem; font-weight: 500; transition: var(--transition);
+            border: 1px solid transparent; cursor: pointer; user-select: none;
+        }
+        .sidebar-link svg { opacity: 0.6; flex-shrink: 0; }
+        .sidebar-link:hover { color: var(--text-primary); background: rgba(255,255,255,0.03); }
+        .sidebar-link.active {
+            color: var(--text-title); background: rgba(255,255,255,0.05);
+            border-color: var(--border-subtle); box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
+        }
+        .sidebar-link.active svg { opacity: 1; }
+
+        .sidebar-footer {
+            padding: 1.25rem; border-top: 1px solid var(--border-subtle);
+            display: flex; align-items: center; gap: 0.75rem;
+        }
+        .avatar-ui {
+            width: 32px; height: 32px; border-radius: var(--radius-sm);
+            background: linear-gradient(135deg, var(--aurora-2), var(--accent-hover));
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 700; color: #FFF; font-size: 0.75rem; flex-shrink: 0;
+        }
+        .user-info { flex: 1; min-width: 0; }
+        .user-name { font-size: 0.85rem; font-weight: 600; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .user-token { font-size: 0.7rem; color: var(--text-tertiary); font-family: 'DM Mono', monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .logout-ui { background: transparent; border: none; color: var(--text-tertiary); cursor: pointer; padding: 4px; border-radius: 4px; transition: var(--transition); flex-shrink: 0; }
+        .logout-ui:hover { color: #f87171; }
+
+        /* ══════════════════════════════════════════════════
+           MAIN CONTENT
+        ══════════════════════════════════════════════════ */
+        .app-content { display: flex; flex-direction: column; overflow: hidden; }
+
+        .app-header {
+            height: 64px; border-bottom: 1px solid var(--border-subtle);
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 2rem;
+            background: rgba(18,19,24,0.8); backdrop-filter: blur(12px);
+            position: sticky; top: 0; z-index: 50; flex-shrink: 0;
+        }
+
+        .header-title h2 { font-size: 1rem; font-weight: 700; color: var(--text-title); font-family: 'Syne', sans-serif; }
+        .header-title span { font-size: 0.75rem; color: var(--text-tertiary); }
+
+        .btn-upload {
+            padding: 0.4rem 1rem; border-radius: var(--radius-sm);
+            background: var(--text-primary); color: var(--bg-base);
+            font-size: 0.85rem; font-weight: 600; cursor: pointer; border: none;
+            display: flex; align-items: center; gap: 0.5rem;
+            transition: var(--transition);
+        }
+        .btn-upload:hover { background: #FFFFFF; transform: scale(1.02); }
+
+        .workspace { flex: 1; overflow-y: auto; padding: 2rem; }
+
+        .workspace::-webkit-scrollbar { width: 6px; }
+        .workspace::-webkit-scrollbar-track { background: transparent; }
+        .workspace::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 10px; }
+
+        /* ══════════════════════════════════════════════════
+           MY IMAGES PAGE
+        ══════════════════════════════════════════════════ */
+        .page { display: none; }
+        .page.active { display: block; }
+
+        .item-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+            gap: 1.25rem;
+        }
+
+        .file-card {
+            display: flex; flex-direction: column;
+            background: var(--bg-surface); border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md); overflow: hidden; cursor: pointer;
+            position: relative; transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
+        }
+        .file-card:hover { border-color: var(--border-hover); transform: translateY(-3px); box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
+
+        .card-menu-btn {
+            position: absolute; top: 0.5rem; right: 0.5rem; width: 30px; height: 30px;
+            border: none; background: rgba(0,0,0,0.55); border-radius: var(--radius-sm);
+            backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center;
+            color: var(--text-secondary); cursor: pointer; z-index: 10; opacity: 0;
+            transition: var(--transition); padding: 0; overflow: visible;
+        }
+        .file-card:hover .card-menu-btn { opacity: 1; }
+        .card-menu-btn.delete-btn:hover { background: rgba(248,113,113,0.2); color: #f87171; }
+
+        .thumbnail-area {
+            height: 130px; width: 100%;
+            position: relative; border-bottom: 1px solid var(--border-subtle);
+            background: linear-gradient(135deg, #1a1d24, #0f1118);
+            overflow: hidden; display: flex; align-items: center; justify-content: center;
+        }
+        .thumbnail-area img {
+            position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+        }
+        /* только placeholder иконка, НЕ views-badge */
+        .thumbnail-placeholder { width: 36px; height: 36px; opacity: 0.3; color: var(--text-secondary); flex-shrink: 0; }
+
+        .file-badge {
+            position: absolute; bottom: 0.5rem; left: 0.75rem; z-index: 2;
+            padding: 0.15rem 0.45rem; border-radius: 4px;
+            background: rgba(0,0,0,0.65); backdrop-filter: blur(4px);
+            color: var(--text-primary); font-size: 0.62rem;
+            font-family: 'DM Mono', monospace; font-weight: 500;
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+
+        .views-badge {
+            position: absolute; bottom: 0.5rem; right: 0.75rem; z-index: 2;
+            padding: 0.15rem 0.45rem; border-radius: 4px;
+            background: rgba(0,0,0,0.65); backdrop-filter: blur(4px);
+            color: var(--text-tertiary); font-size: 0.62rem;
+            font-family: 'DM Mono', monospace;
+            display: flex; align-items: center; gap: 3px; line-height: 1;
+        }
+        /* явно фиксируем размер иконки внутри badge */
+        .views-badge svg { width: 10px; height: 10px; flex-shrink: 0; }
+
+        .details-area { padding: 0.875rem; display: flex; flex-direction: column; }
+        .filename { font-size: 0.82rem; font-weight: 500; color: var(--text-title); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 0.4rem; }
+        .metadata-row { display: flex; justify-content: space-between; align-items: center; }
+        .metadata-size { font-family: 'DM Mono', monospace; font-size: 0.72rem; color: var(--text-tertiary); }
+        .metadata-date { font-size: 0.72rem; color: var(--text-secondary); }
+
+        /* Copy URL state */
+        .copy-toast {
+            position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%);
+            background: var(--bg-surface); border: 1px solid var(--border-hover);
+            color: var(--text-primary); padding: 0.6rem 1.25rem;
+            border-radius: var(--radius-md); font-size: 0.85rem;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+            opacity: 0; pointer-events: none; transition: opacity 0.3s;
+            z-index: 999; display: flex; align-items: center; gap: 0.5rem;
+        }
+        .copy-toast.show { opacity: 1; }
+
+        /* Empty state */
+        .empty-state {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            padding: 5rem 2rem; text-align: center; color: var(--text-tertiary);
+        }
+        .empty-state svg { margin-bottom: 1rem; opacity: 0.3; }
+        .empty-state p { font-size: 0.9rem; }
+
+        /* Loading state */
+        .skeleton-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 1.25rem;
+        }
+        .skeleton-card {
+            background: var(--bg-surface); border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md); overflow: hidden; height: 210px;
+        }
+        .skeleton-thumb { height: 130px; background: linear-gradient(90deg, var(--bg-surface) 25%, rgba(255,255,255,0.03) 50%, var(--bg-surface) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
+        .skeleton-body { padding: 0.875rem; }
+        .skeleton-line { height: 10px; border-radius: 4px; background: linear-gradient(90deg, var(--bg-surface) 25%, rgba(255,255,255,0.03) 50%, var(--bg-surface) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; margin-bottom: 0.5rem; }
+        .skeleton-line.short { width: 60%; }
+
+        @keyframes shimmer { to { background-position: -200% 0; } }
+
+        /* ══════════════════════════════════════════════════
+           STATS PAGE
+        ══════════════════════════════════════════════════ */
+        .stats-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1.25rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: var(--bg-surface); border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md); padding: 1.5rem;
+            display: flex; flex-direction: column; gap: 0.5rem;
+        }
+        .stat-label { font-size: 0.75rem; font-weight: 600; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 1px; }
+        .stat-value { font-size: 2rem; font-weight: 800; color: var(--text-title); font-family: 'Syne', sans-serif; letter-spacing: -1px; }
+        .stat-sub { font-size: 0.75rem; color: var(--text-secondary); }
+
+        .stat-icon { width: 36px; height: 36px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; margin-bottom: 0.5rem; }
+        .stat-icon.blue { background: rgba(59,130,246,0.1); color: var(--aurora-1); }
+        .stat-icon.purple { background: rgba(139,92,246,0.1); color: var(--aurora-2); }
+        .stat-icon.green { background: rgba(16,185,129,0.1); color: var(--aurora-3); }
+
+        /* ══════════════════════════════════════════════════
+           IMAGE MODAL
+        ══════════════════════════════════════════════════ */
+        .modal-overlay {
+            position: fixed; inset: 0; z-index: 1000;
+            background: rgba(0,0,0,0.85); backdrop-filter: blur(8px);
+            display: flex; align-items: center; justify-content: center;
+            padding: 2rem; opacity: 0; pointer-events: none;
+            transition: opacity 0.25s var(--ease-out);
+        }
+        .modal-overlay.open { opacity: 1; pointer-events: all; }
+
+        .modal {
+            background: var(--bg-surface); border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-xl); overflow: hidden;
+            max-width: 860px; width: 100%;
+            box-shadow: 0 40px 80px rgba(0,0,0,0.6);
+            transform: scale(0.96) translateY(12px);
+            transition: transform 0.3s var(--ease-out);
+            display: flex; flex-direction: column; max-height: 90vh;
+        }
+        .modal-overlay.open .modal { transform: scale(1) translateY(0); }
+
+        .modal-img-wrap {
+            flex: 1; background: #08090c;
+            display: flex; align-items: center; justify-content: center;
+            min-height: 300px; max-height: 60vh; overflow: hidden; position: relative;
+        }
+        .modal-img-wrap img {
+            max-width: 100%; max-height: 100%; object-fit: contain; display: block;
+        }
+        .modal-img-wrap .modal-no-preview {
+            display: flex; flex-direction: column; align-items: center; gap: 1rem;
+            color: var(--text-tertiary); font-size: 0.85rem;
+        }
+        .modal-img-wrap .modal-no-preview svg { opacity: 0.3; }
+
+        .modal-footer {
+            padding: 1.25rem 1.5rem; border-top: 1px solid var(--border-subtle);
+            display: flex; align-items: center; gap: 1rem;
+        }
+        .modal-info { flex: 1; min-width: 0; }
+        .modal-filename { font-size: 0.9rem; font-weight: 600; color: var(--text-title); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 0.25rem; }
+        .modal-meta { font-size: 0.75rem; color: var(--text-tertiary); font-family: 'DM Mono', monospace; display: flex; gap: 1rem; }
+
+        .modal-actions { display: flex; gap: 0.5rem; flex-shrink: 0; }
+
+        .btn-modal {
+            padding: 0.45rem 1rem; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);
+            background: var(--bg-base); color: var(--text-primary);
+            font-size: 0.82rem; font-weight: 500; cursor: pointer;
+            display: flex; align-items: center; gap: 0.4rem;
+            transition: var(--transition);
+        }
+        .btn-modal:hover { border-color: var(--border-hover); color: var(--text-title); }
+        .btn-modal.primary { background: var(--text-primary); color: var(--bg-base); border-color: transparent; }
+        .btn-modal.primary:hover { background: #fff; }
+        .btn-modal.danger:hover { border-color: rgba(248,113,113,0.4); color: #f87171; }
+
+        .modal-close {
+            position: absolute; top: 1rem; right: 1rem;
+            width: 32px; height: 32px; border: 1px solid var(--border-subtle);
+            background: rgba(0,0,0,0.5); backdrop-filter: blur(4px);
+            border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center;
+            color: var(--text-secondary); cursor: pointer; transition: var(--transition); z-index: 10;
+        }
+        .modal-close:hover { color: var(--text-title); border-color: var(--border-hover); }
+    </style>
+</head>
+<body>
+
+    <div class="app-layout">
+
+        <!-- SIDEBAR -->
+        <aside class="app-sidebar">
+            <div class="app-logo">
+                <div class="brand-dot"></div>
+                <span class="brand-font">Skrin</span>
+            </div>
+
+            <nav class="sidebar-nav">
+                <div class="nav-label">Navigation</div>
+                <div class="sidebar-link active" onclick="navigate('images', this)">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+                    My Images
+                </div>
+                <div class="sidebar-link" onclick="navigate('stats', this)">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" viewBox="0 0 24 24"><path d="M2 12h4l2-9 5 18 2-9h4"></path></svg>
+                    Statistics
+                </div>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="avatar-ui" id="avatarInitials">?</div>
+                <div class="user-info">
+                    <div class="user-name" id="userName">Loading...</div>
+                    <div class="user-token mono" id="userToken">—</div>
+                </div>
+                <button class="logout-ui" title="Logout" onclick="logout()">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                </button>
+            </div>
+        </aside>
+
+        <!-- MAIN CONTENT -->
+        <main class="app-content">
+
+            <header class="app-header">
+                <div class="header-title">
+                    <h2 id="pageTitle">My Images</h2>
+                    <span id="pageSubtitle">Your uploaded files</span>
+                </div>
+                <button class="btn-upload" onclick="copyUploadUrl()">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" viewBox="0 0 24 24"><line x1="10" y1="13" x2="21" y2="2"></line><path d="M13.73 21a2 2 0 0 1-3.46 0l-7.77-13.4A2 2 0 0 1 4.22 5h15.56a2 2 0 0 1 1.72 2.6z"></path></svg>
+                    ShareX Config
+                </button>
+            </header>
+
+            <div class="workspace">
+
+                <!-- MY IMAGES PAGE -->
+                <div id="page-images" class="page active">
+                    <div id="imagesContent">
+                        <div class="skeleton-grid">
+                            <div class="skeleton-card"><div class="skeleton-thumb"></div><div class="skeleton-body"><div class="skeleton-line"></div><div class="skeleton-line short"></div></div></div>
+                            <div class="skeleton-card"><div class="skeleton-thumb"></div><div class="skeleton-body"><div class="skeleton-line"></div><div class="skeleton-line short"></div></div></div>
+                            <div class="skeleton-card"><div class="skeleton-thumb"></div><div class="skeleton-body"><div class="skeleton-line"></div><div class="skeleton-line short"></div></div></div>
+                            <div class="skeleton-card"><div class="skeleton-thumb"></div><div class="skeleton-body"><div class="skeleton-line"></div><div class="skeleton-line short"></div></div></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- STATS PAGE -->
+                <div id="page-stats" class="page">
+                    <div id="statsContent">
+                        <div class="stats-grid">
+                            <div class="skeleton-card" style="height: 130px;"></div>
+                            <div class="skeleton-card" style="height: 130px;"></div>
+                            <div class="skeleton-card" style="height: 130px;"></div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- IMAGE MODAL -->
+    <div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+        <div class="modal" id="modal">
+            <div class="modal-img-wrap" id="modalImgWrap">
+                <button class="modal-close" onclick="closeModalDirect()">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            </div>
+            <div class="modal-footer">
+                <div class="modal-info">
+                    <div class="modal-filename" id="modalFilename">—</div>
+                    <div class="modal-meta">
+                        <span id="modalSize">—</span>
+                        <span id="modalDate">—</span>
+                        <span id="modalViews">— views</span>
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button class="btn-modal danger" id="modalDeleteBtn" title="Delete">
+                        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14H6L5 6"></path></svg>
+                        Delete
+                    </button>
+                    <a class="btn-modal" id="modalOpenBtn" target="_blank">
+                        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                        Open
+                    </a>
+                    <button class="btn-modal primary" id="modalCopyBtn">
+                        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                        Copy URL
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast notification -->
+    <div class="copy-toast" id="toast">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
+        <span id="toastMsg">URL copied!</span>
+    </div>
+
+    <script>
+        const BASE_URL = window.location.origin;
+        const token = localStorage.getItem('skrin_token');
+
+        // Auth guard
+        if (!token) window.location.href = '/';
+
+        let imagesLoaded = false;
+        let statsLoaded = false;
+
+        // ═══════════════════════════════
+        // INIT
+        // ═══════════════════════════════
+        async function init() {
+            // Show token preview in sidebar
+            document.getElementById('userToken').textContent = token.slice(0, 8) + '...';
+            document.getElementById('avatarInitials').textContent = token.slice(0, 2).toUpperCase();
+            document.getElementById('userName').textContent = 'User';
+
+            loadImages();
+        }
+
+        // ═══════════════════════════════
+        // NAVIGATION
+        // ═══════════════════════════════
+        function navigate(page, el) {
+            document.querySelectorAll('.sidebar-link').forEach(l => l.classList.remove('active'));
+            el.classList.add('active');
+
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById('page-' + page).classList.add('active');
+
+            const titles = {
+                images: { title: 'My Images', sub: 'Your uploaded files' },
+                stats:  { title: 'Statistics', sub: 'Global usage overview' },
+            };
+            document.getElementById('pageTitle').textContent = titles[page].title;
+            document.getElementById('pageSubtitle').textContent = titles[page].sub;
+
+            if (page === 'stats' && !statsLoaded) loadStats();
+        }
+
+        // ═══════════════════════════════
+        // API HELPERS
+        // ═══════════════════════════════
+        async function apiFetch(path) {
+            const res = await fetch(path, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (res.status === 401) { logout(); return null; }
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            return res.json();
+        }
+
+        // ═══════════════════════════════
+        // LOAD IMAGES
+        // ═══════════════════════════════
+        async function loadImages() {
+            try {
+                const images = await apiFetch('/api/my');
+                if (!images) return;
+                imagesLoaded = true;
+
+                const container = document.getElementById('imagesContent');
+
+                if (images.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <svg width="48" height="48" fill="none" stroke="currentColor" stroke-width="1" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+                            <p>No images yet. Upload something via ShareX or the API.</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                const grid = document.createElement('div');
+                grid.className = 'item-grid';
+
+                images.forEach(img => {
+                    const rawExt = img.mime_type ? img.mime_type.split('/')[1] : 'bin';
+                    const ext = rawExt.toUpperCase();
+                    
+                    const isImage = ['JPG','JPEG','PNG','GIF','WEBP','BMP','SVG'].includes(ext);
+                    
+                    const fileUrl = `${BASE_URL}/file/${img.filename}.${rawExt}`;
+
+                    const card = document.createElement('div');
+                    card.className = 'file-card';
+                    card.dataset.id = img.id;
+                    card.onclick = () => openModal(img, fileUrl, isImage);
+
+                    card.innerHTML = `
+                        <button class="card-menu-btn delete-btn" title="Delete" onclick="deleteImageById(event, '${img.id}')">
+                            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14H6L5 6"></path><path d="M10 11v6M14 11v6M9 6V4h6v2"></path></svg>
+                        </button>
+                        <div class="thumbnail-area">
+                            ${isImage
+                                ? `<img src="${fileUrl}" alt="${img.filename}" loading="lazy">`
+                                : `<svg class="thumbnail-placeholder" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>`
+                            }
+                            <span class="file-badge">${ext}</span>
+                            <span class="views-badge">
+                                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                                ${img.views}
+                            </span>
+                        </div>
+                        <div class="details-area">
+                            <div class="filename">${img.filename}</div>
+                            <div class="metadata-row">
+                                <span class="metadata-date">${formatDate(img.uploaded_at)}</span>
+                                <span class="metadata-size">${formatSize(img.size)}</span>
+                            </div>
+                        </div>
+                    `;
+
+                    grid.appendChild(card);
+                });
+
+                container.innerHTML = '';
+                container.appendChild(grid);
+
+            } catch (err) {
+                document.getElementById('imagesContent').innerHTML = `
+                    <div class="empty-state">
+                        <svg width="48" height="48" fill="none" stroke="currentColor" stroke-width="1" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                        <p>Failed to load images. Check your connection.</p>
+                    </div>
+                `;
+            }
+        }
+
+        // ═══════════════════════════════
+        // LOAD STATS
+        // ═══════════════════════════════
+        async function loadStats() {
+            try {
+                const stats = await apiFetch('/api/stats');
+                if (!stats) return;
+                statsLoaded = true;
+
+                document.getElementById('statsContent').innerHTML = `
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-icon blue">
+                                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+                            </div>
+                            <div class="stat-label">Total Images</div>
+                            <div class="stat-value">${stats.total_images ?? 0}</div>
+                            <div class="stat-sub">All time uploads</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon purple">
+                                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                            </div>
+                            <div class="stat-label">Total Storage</div>
+                            <div class="stat-value">${formatSize(stats.total_size ?? 0)}</div>
+                            <div class="stat-sub">Disk usage</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon green">
+                                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                            </div>
+                            <div class="stat-label">Total Views</div>
+                            <div class="stat-value">${(stats.total_views ?? 0).toLocaleString()}</div>
+                            <div class="stat-sub">Across all files</div>
+                        </div>
+                    </div>
+                `;
+            } catch {
+                document.getElementById('statsContent').innerHTML = `
+                    <div class="empty-state">
+                        <p>Failed to load statistics.</p>
+                    </div>
+                `;
+            }
+        }
+
+        // ═══════════════════════════════
+        // MODAL
+        // ═══════════════════════════════
+        let currentModalId = null;
+        let currentModalCard = null;
+
+        function openModal(img, fileUrl, isImage) {
+            currentModalId = img.id;
+
+            const wrap = document.getElementById('modalImgWrap');
+            // убираем старый контент кроме кнопки закрытия
+            const closeBtn = wrap.querySelector('.modal-close');
+            wrap.innerHTML = '';
+            wrap.appendChild(closeBtn);
+
+            if (isImage) {
+                const im = document.createElement('img');
+                im.src = fileUrl;
+                im.alt = img.filename;
+                wrap.appendChild(im);
+            } else {
+                wrap.insertAdjacentHTML('beforeend', `
+                    <div class="modal-no-preview">
+                        <svg width="48" height="48" fill="none" stroke="currentColor" stroke-width="1" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                        <span>No preview available</span>
+                    </div>
+                `);
+            }
+
+            document.getElementById('modalFilename').textContent = img.filename;
+            document.getElementById('modalSize').textContent = formatSize(img.size);
+            document.getElementById('modalDate').textContent = formatDate(img.uploaded_at);
+            document.getElementById('modalViews').textContent = `${img.views} views`;
+            document.getElementById('modalOpenBtn').href = fileUrl;
+            document.getElementById('modalCopyBtn').onclick = () => {
+                navigator.clipboard.writeText(fileUrl).then(() => showToast('URL copied!'));
+            };
+            document.getElementById('modalDeleteBtn').onclick = () => deleteImageById(null, img.id);
+
+            document.getElementById('modalOverlay').classList.add('open');
+            document.addEventListener('keydown', onEsc);
+        }
+
+        function closeModal(e) {
+            if (e.target === document.getElementById('modalOverlay')) closeModalDirect();
+        }
+
+        function closeModalDirect() {
+            document.getElementById('modalOverlay').classList.remove('open');
+            document.removeEventListener('keydown', onEsc);
+        }
+
+        function onEsc(e) { if (e.key === 'Escape') closeModalDirect(); }
+
+        // ═══════════════════════════════
+        // DELETE IMAGE
+        // ═══════════════════════════════
+        async function deleteImageById(e, id) {
+            if (e) e.stopPropagation();
+            if (!confirm('Delete this image?')) return;
+
+            try {
+                const res = await fetch(`/api/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (res.ok) {
+                    // убрать карточку из грида
+                    const card = document.querySelector(`[data-id="${id}"]`);
+                    if (card) {
+                        card.style.transition = 'opacity 0.3s, transform 0.3s';
+                        card.style.opacity = '0';
+                        card.style.transform = 'scale(0.95)';
+                        setTimeout(() => card.remove(), 300);
+                    }
+                    closeModalDirect();
+                    showToast('Image deleted');
+                } else {
+                    showToast('Failed to delete');
+                }
+            } catch {
+                showToast('Network error');
+            }
+        }
+
+        // ═══════════════════════════════
+        // HELPERS
+        // ═══════════════════════════════
+        function copyUrl(url) {
+            navigator.clipboard.writeText(url).then(() => showToast('URL copied!'));
+        }
+
+        function copyUploadUrl() {
+            const config = JSON.stringify({
+                Version: "14.1.0",
+                Name: "Skrin",
+                DestinationType: "ImageUploader, FileUploader",
+                RequestMethod: "POST",
+                RequestURL: `${BASE_URL}/upload`,
+                Headers: { Authorization: `Bearer ${token}` },
+                Body: "MultipartFormData",
+                FileFormName: "file",
+                URL: "$json:url$"
+            }, null, 2);
+
+            navigator.clipboard.writeText(config).then(() => showToast('ShareX config copied!'));
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toastMsg').textContent = msg;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 2500);
+        }
+
+        function logout() {
+            localStorage.removeItem('skrin_token');
+            window.location.href = '/';
+        }
+
+        function formatDate(iso) {
+            return new Date(iso).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' });
+        }
+
+        function formatSize(bytes) {
+            if (!bytes || bytes === 0) return '0 B';
+            const units = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(1024));
+            return (bytes / Math.pow(1024, i)).toFixed(1) + ' ' + units[i];
+        }
+
+        init();
+    </script>
+
+</body>
+</html>

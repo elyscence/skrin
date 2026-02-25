@@ -1,30 +1,32 @@
-use crate::{db::operations::is_token_valid, error::AuthError, state::AppState};
+use crate::{
+    db::operations::is_token_valid, error::AuthError, state::AppState, utils::get_token::get_token,
+};
 use axum::{
     extract::{Request, State},
-    http::header::AUTHORIZATION,
     middleware::Next,
     response::Response,
 };
 
+#[derive(Clone)]
+pub struct AuthUser {
+    pub user_id: String,
+}
+
 pub async fn auth(
     State(state): State<AppState>,
-    req: Request,
+    mut req: Request,
     next: Next,
 ) -> Result<Response, AuthError> {
-    let token = req
-        .headers()
-        .get(AUTHORIZATION)
-        .and_then(|h| h.to_str().ok())
-        .and_then(|h| h.strip_prefix("Bearer "))
-        .ok_or(AuthError::NoTokenProvided)?;
+    let token = get_token(req.headers()).ok_or(AuthError::NoTokenProvided)?;
 
-    is_token_valid(&state.pool, token)
+    let user_id = is_token_valid(&state.pool, &token)
         .await
         .map_err(|e| AuthError::DatabaseError(e))?
-        .then_some(())
         .ok_or(AuthError::InvalidToken)?;
 
     tracing::debug!("Successful auth for token: {}...", &token[..8]);
+
+    req.extensions_mut().insert(AuthUser { user_id });
 
     Ok(next.run(req).await)
 }

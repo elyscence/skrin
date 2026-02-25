@@ -11,6 +11,7 @@ pub enum AppError {
     NoMimeType,
     IoError(std::io::Error),
     DatabaseError(sqlx::Error),
+    NotFound,
 }
 
 pub enum AuthError {
@@ -26,6 +27,7 @@ impl IntoResponse for AppError {
             AppError::InvalidInput => (StatusCode::BAD_REQUEST, "Invalid input"),
             AppError::AlreadyExists => (StatusCode::CONFLICT, "File already exists"),
             AppError::NoMimeType => (StatusCode::BAD_REQUEST, "MIME Type couldn't be determined"),
+            AppError::NotFound => (StatusCode::NOT_FOUND, "Couldn't find file"),
             AppError::IoError(err) => {
                 tracing::error!("IO Error: {}", err);
                 (StatusCode::INTERNAL_SERVER_ERROR, "Server error")

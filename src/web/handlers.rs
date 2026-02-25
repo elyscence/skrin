@@ -1,19 +1,21 @@
 use crate::{
-    db::operations::save_image,
+    db::operations::{delete_image, get_stats, get_user_images, save_image},
     error::AppError,
-    models::{image::Image, response::UploadResponse},
+    middlewares::auth::AuthUser,
+    models::{image::Image, response::UploadResponse, stats::StatsResponse},
     state::AppState,
     utils::gen_id::generate_id,
 };
 
 use axum::{
-    Json,
+    Extension, Json,
     body::Body,
     extract::{Multipart, Path, State},
     http::header,
     response::{Html, IntoResponse},
 };
 
+use serde_json::json;
 use tokio_util::io::ReaderStream;
 use tracing::debug;
 use uuid::Uuid;
@@ -21,6 +23,7 @@ use uuid::Uuid;
 // TODO: сделать impl IntoResponse for AppError, просто better handling ошибок
 
 pub async fn upload(
+    Extension(auth_user): Extension<AuthUser>,
     State(state): State<AppState>,
     mut multipart: Multipart,
 ) -> Result<Json<UploadResponse>, AppError> {
@@ -30,19 +33,27 @@ pub async fn upload(
         .ok_or(AppError::NoFileProvided)?;
 
     let raw_name = field.file_name().ok_or(AppError::InvalidInput)?.to_string();
+    let mime_type = field
+        .content_type()
+        .ok_or(AppError::NoMimeType)?
+        .to_string();
 
     let file_extension = raw_name.split(".").last().unwrap_or("png");
     let data = field.bytes().await?;
 
     let file_name = generate_id(5);
 
-    let mime_guess = mime_guess::from_path(&raw_name)
-        .first_raw()
-        .ok_or(AppError::NoMimeType)?;
+    if !mime_type.starts_with("image/") {
+        return Err(AppError::InvalidInput);
+    }
+
+    // let mime_guess = mime_guess::from_path(&raw_name)
+    //     .first_raw()
+    //     .ok_or(AppError::NoMimeType)?;
 
     debug!(
         "Uploading file: {}.{}, mime type: {}",
-        file_name, file_extension, mime_guess
+        file_name, file_extension, mime_type
     );
 
     let formatted_path = format!(
@@ -61,9 +72,9 @@ pub async fn upload(
     let image_data = Image {
         id: Uuid::new_v4().to_string(),
         filename: file_name,
-        mime_type: mime_guess.to_owned(),
+        mime_type: mime_type.to_owned(),
         size: data.len() as i64,
-        uploaded_by: String::from("anonymous"),
+        uploaded_by: auth_user.user_id,
         uploaded_at: chrono::Utc::now().to_rfc3339(),
         views: 0,
         deleted_at: None,
@@ -79,6 +90,7 @@ pub async fn upload(
     }))
 }
 
+// TODO: Если файла нет в upload, то установить ему deleted_at now
 pub async fn get_file(
     State(state): State<AppState>,
     Path(file_name): Path<String>,
@@ -108,6 +120,31 @@ pub async fn get_file(
     ];
 
     Ok((headers, body))
+}
+
+pub async fn my_images(
+    State(state): State<AppState>,
+    Extension(auth_user): Extension<AuthUser>,
+) -> Result<Json<Vec<Image>>, AppError> {
+    let user_images = get_user_images(&state.pool, &auth_user.user_id).await?;
+    Ok(Json(user_images))
+}
+
+pub async fn delete_image_route(
+    State(state): State<AppState>,
+    Extension(auth_user): Extension<AuthUser>,
+    Path(image_id): Path<String>,
+) -> Result<impl IntoResponse, AppError> {
+    delete_image(&state.pool, &image_id, &auth_user.user_id)
+        .await?
+        .then_some(Json(json!({ "success": true })))
+        .ok_or(AppError::NotFound)
+}
+
+pub async fn get_stats_route(
+    State(state): State<AppState>,
+) -> Result<Json<StatsResponse>, AppError> {
+    Ok(Json(get_stats(&state.pool).await?))
 }
 
 pub async fn show_form() -> Html<&'static str> {

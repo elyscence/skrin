@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Skrin — Login</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Inter:wght@400;500;600&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-base: #0B0C10;
+            --bg-surface: #121318;
+            --bg-elevated: rgba(255,255,255,0.03);
+            --text-title: #FFFFFF;
+            --text-primary: #E2E4E9;
+            --text-secondary: #8B909A;
+            --text-tertiary: #525660;
+            --accent-primary: #60A5FA;
+            --accent-hover: #3B82F6;
+            --aurora-1: #3B82F6;
+            --aurora-2: #8B5CF6;
+            --aurora-3: #10B981;
+            --border-subtle: rgba(255,255,255,0.06);
+            --border-hover: rgba(255,255,255,0.12);
+            --focus-ring: rgba(96,165,250,0.4);
+            --radius-xl: 24px;
+            --radius-lg: 16px;
+            --radius-md: 10px;
+            --radius-sm: 6px;
+            --ease-out: cubic-bezier(0.16,1,0.3,1);
+            --transition: 0.25s var(--ease-out);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; outline: none; }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background-color: var(--bg-base);
+            color: var(--text-primary);
+            overflow: hidden;
+            height: 100vh;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        h1, h2, h3, .brand-font { font-family: 'Syne', sans-serif; }
+
+        .aurora-wrap {
+            position: fixed; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; opacity: 0.15;
+        }
+        .aurora-blob {
+            position: absolute; border-radius: 50%; filter: blur(90px);
+            animation: move-blob 15s alternate infinite ease-in-out;
+        }
+        .blob-1 { width: 60vw; height: 60vh; background: var(--aurora-1); top: -20vh; left: -10vw; }
+        .blob-2 { width: 50vw; height: 50vh; background: var(--aurora-2); top: 10vh; right: -10vw; animation-delay: -5s; }
+        .blob-3 { width: 40vw; height: 40vh; background: var(--aurora-3); bottom: -20vh; left: 20vw; animation-delay: -10s; filter: blur(120px); }
+
+        @keyframes move-blob {
+            0% { transform: translate(0,0) scale(1); }
+            100% { transform: translate(100px,50px) scale(1.1); }
+        }
+
+        .page-login {
+            position: relative; height: 100vh; width: 100vw;
+            display: flex; align-items: center; justify-content: center; padding: 2rem;
+            background: radial-gradient(circle at 50% -20%, #1a1e29 0%, var(--bg-base) 70%);
+            z-index: 1;
+        }
+
+        .login-split-card {
+            display: flex; flex-direction: row;
+            width: 100%; max-width: 900px; height: 500px;
+            border-radius: var(--radius-xl); overflow: hidden;
+            position: relative; z-index: 10;
+            box-shadow: 0 40px 80px -20px rgba(0,0,0,0.8);
+            animation: modalFadeIn 0.8s var(--ease-out) forwards;
+        }
+
+        @keyframes modalFadeIn {
+            from { opacity: 0; transform: translateY(30px) scale(0.98); }
+            to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        .login-visual {
+            flex: 1; position: relative;
+            background: #0f1218; padding: 3rem;
+            display: flex; flex-direction: column; justify-content: space-between;
+            overflow: hidden; border-right: 1px solid var(--border-subtle);
+        }
+
+        .fluid-mesh {
+            position: absolute; inset: 0; z-index: 0; opacity: 0.8;
+            background-image:
+                radial-gradient(at 0% 0%, hsla(253,16%,7%,1) 0, transparent 50%),
+                radial-gradient(at 50% 0%, hsla(225,39%,30%,0.5) 0, transparent 50%),
+                radial-gradient(at 100% 0%, hsla(339,49%,30%,0.3) 0, transparent 50%);
+            animation: breath 10s ease-in-out infinite alternate;
+        }
+        @keyframes breath { 100% { background-position: 50% 50%; transform: scale(1.05); } }
+
+        .logo-lockup { display: flex; align-items: center; gap: 0.75rem; position: relative; z-index: 1; }
+        .brand-dot { width: 12px; height: 12px; background: var(--text-title); border-radius: 50%; box-shadow: 0 0 10px rgba(255,255,255,0.5); }
+
+        .visual-quote { position: relative; z-index: 1; }
+        .visual-quote p { font-size: 1.5rem; color: var(--text-title); line-height: 1.3; font-weight: 500; }
+        .visual-quote span { display: block; margin-top: 1rem; color: var(--text-secondary); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 2px; }
+
+        .login-form-area {
+            width: 440px; background: var(--bg-surface);
+            padding: 3rem 4rem; display: flex; flex-direction: column; justify-content: center;
+        }
+
+        .login-form-area h2 { font-size: 1.8rem; margin-bottom: 0.5rem; color: var(--text-title); letter-spacing: -0.5px; }
+        .login-form-area > p { color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 2.5rem; line-height: 1.5; }
+
+        .form-group { margin-bottom: 1.5rem; position: relative; }
+        .form-label { display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.5rem; }
+
+        .form-input {
+            width: 100%; background: var(--bg-base); border: 1px solid var(--border-subtle);
+            color: var(--text-primary); border-radius: var(--radius-md); padding: 0.875rem 1rem;
+            font-size: 1rem; font-family: 'DM Mono', monospace;
+            transition: var(--transition);
+        }
+        .form-input:focus { border-color: var(--accent-primary); box-shadow: 0 0 0 4px var(--focus-ring); background: #131720; }
+        .form-input::placeholder { color: var(--text-tertiary); }
+        .form-input.error { border-color: #f87171; box-shadow: 0 0 0 4px rgba(248,113,113,0.2); }
+
+        .status-dot {
+            position: absolute; right: 1rem; top: 2.2rem; width: 8px; height: 8px;
+            border-radius: 50%; background: var(--text-tertiary);
+            transition: var(--transition);
+        }
+        .status-dot.valid { background: var(--aurora-3); box-shadow: 0 0 8px var(--aurora-3); }
+        .status-dot.error { background: #f87171; box-shadow: 0 0 8px #f87171; }
+
+        .btn {
+            display: inline-flex; justify-content: center; align-items: center; gap: 0.5rem;
+            width: 100%; padding: 0.875rem 1rem; font-family: 'Inter', sans-serif;
+            font-weight: 600; font-size: 0.95rem; cursor: pointer; border-radius: var(--radius-md);
+            border: none; transition: var(--transition);
+        }
+        .btn-main { background: var(--text-title); color: #000; box-shadow: 0 4px 14px rgba(255,255,255,0.1); }
+        .btn-main:hover { transform: translateY(-1px); background: #F1F3F5; box-shadow: 0 6px 20px rgba(255,255,255,0.15); }
+        .btn-main:active { transform: translateY(1px); }
+        .btn-main:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+        .error-msg {
+            font-size: 0.8rem; color: #f87171; margin-top: 0.5rem; display: none;
+        }
+        .error-msg.visible { display: block; }
+
+        .spinner {
+            width: 16px; height: 16px; border: 2px solid rgba(0,0,0,0.3);
+            border-top-color: #000; border-radius: 50%;
+            animation: spin 0.6s linear infinite; display: none;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+    <div class="aurora-wrap">
+        <div class="aurora-blob blob-1"></div>
+        <div class="aurora-blob blob-2"></div>
+        <div class="aurora-blob blob-3"></div>
+    </div>
+
+    <div class="page-login">
+        <div class="login-split-card">
+
+            <div class="login-visual">
+                <div class="fluid-mesh"></div>
+                <div class="logo-lockup">
+                    <div class="brand-dot"></div>
+                    <span class="brand-font" style="font-size: 1.4rem; color: var(--text-title);">Skrin</span>
+                </div>
+                <div class="visual-quote">
+                    <p>"Your personal image CDN — fast, minimal, yours."</p>
+                    <span>ShareX · API · CDN</span>
+                </div>
+            </div>
+
+            <div class="login-form-area">
+                <h2>Welcome</h2>
+                <p>Enter your access token to open the dashboard.</p>
+
+                <div class="form-group">
+                    <label class="form-label">Access Token</label>
+                    <input type="password" class="form-input" id="tokenInput" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" autocomplete="off">
+                    <div class="status-dot" id="statusDot"></div>
+                    <div class="error-msg" id="errorMsg">Invalid token. Please try again.</div>
+                </div>
+
+                <button class="btn btn-main" id="loginBtn" onclick="handleLogin()">
+                    <span id="btnText">Access Dashboard</span>
+                    <div class="spinner" id="spinner"></div>
+                    <svg id="btnArrow" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M5 12h14"></path><path d="M12 5l7 7-7 7"></path></svg>
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // Auto-redirect if already logged in
+        const existingToken = localStorage.getItem('skrin_token');
+        if (existingToken) {
+            window.location.href = '/app.html';
+        }
+
+        const tokenInput = document.getElementById('tokenInput');
+        const loginBtn = document.getElementById('loginBtn');
+        const spinner = document.getElementById('spinner');
+        const btnArrow = document.getElementById('btnArrow');
+        const btnText = document.getElementById('btnText');
+        const statusDot = document.getElementById('statusDot');
+        const errorMsg = document.getElementById('errorMsg');
+
+        tokenInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') handleLogin();
+        });
+
+        tokenInput.addEventListener('input', () => {
+            statusDot.className = 'status-dot';
+            errorMsg.classList.remove('visible');
+            tokenInput.classList.remove('error');
+        });
+
+        async function handleLogin() {
+            const token = tokenInput.value.trim();
+            if (!token) return;
+
+            // Loading state
+            loginBtn.disabled = true;
+            spinner.style.display = 'block';
+            btnArrow.style.display = 'none';
+            btnText.textContent = 'Verifying...';
+            errorMsg.classList.remove('visible');
+            tokenInput.classList.remove('error');
+
+            try {
+                const res = await fetch('/api/my', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (res.ok) {
+                    statusDot.className = 'status-dot valid';
+                    localStorage.setItem('skrin_token', token);
+                    btnText.textContent = 'Access granted!';
+                    setTimeout(() => { window.location.href = '/app.html'; }, 400);
+                } else {
+                    throw new Error('invalid');
+                }
+            } catch {
+                statusDot.className = 'status-dot error';
+                tokenInput.classList.add('error');
+                errorMsg.classList.add('visible');
+
+                loginBtn.disabled = false;
+                spinner.style.display = 'none';
+                btnArrow.style.display = 'block';
+                btnText.textContent = 'Access Dashboard';
+            }
+        }
+    </script>
+</body>
+</html>
