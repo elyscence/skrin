@@ -1,5 +1,7 @@
 use crate::{
-    db::operations::{delete_image, get_stats, get_user_images, increment_views, save_image},
+    db::operations::{
+        delete_image, get_image_by_id, get_stats, get_user_images, increment_views, save_image,
+    },
     error::AppError,
     middlewares::auth::AuthUser,
     models::{file_query::FileQuery, image::Image, response::UploadResponse, stats::StatsResponse},
@@ -71,7 +73,7 @@ pub async fn upload(
 
     let image_data = Image {
         id: Uuid::new_v4().to_string(),
-        filename: file_name,
+        filename: format!("{}.{}", file_name, file_extension),
         mime_type: mime_type.to_owned(),
         size: data.len() as i64,
         uploaded_by: auth_user.user_id,
@@ -93,12 +95,18 @@ pub async fn upload(
 // TODO: Если файла нет в upload, то установить ему deleted_at now
 pub async fn get_file(
     State(state): State<AppState>,
-    Path(file_name): Path<String>,
+    Path(id): Path<String>,
     Query(query): Query<FileQuery>,
 ) -> Result<impl IntoResponse, AppError> {
-    let upload_dir = std::path::PathBuf::from(state.config.upload_path).canonicalize()?;
+    let file_name = get_image_by_id(&state.pool, &id)
+        .await?
+        .ok_or(AppError::NotFound)?;
+
+    let upload_dir = std::path::PathBuf::from(&state.config.upload_path).canonicalize()?;
 
     let formatted_path = upload_dir.join(&file_name);
+
+    tracing::debug!("Formatted path: {}", formatted_path.to_string_lossy());
 
     if !formatted_path.starts_with(&upload_dir) {
         return Err(AppError::InvalidInput);
@@ -121,8 +129,8 @@ pub async fn get_file(
     ];
 
     if query.thumb != Some(true) {
-        if let Err(e) = increment_views(&state.pool, &file_name).await {
-            tracing::warn!("Failed to increment views for {}: {}", file_name, e);
+        if let Err(e) = increment_views(&state.pool, &id).await {
+            tracing::warn!("Failed to increment views for {}: {}", id, e);
         }
     }
 

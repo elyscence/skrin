@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT filename as \"filename!\" FROM images WHERE id = ? AND deleted_at IS NULL",
+  "describe": {
+    "columns": [
+      {
+        "name": "filename!",
+        "ordinal": 0,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "e0b176ed415ed85fa2cd364b972453502011e4f846f340c759779b8986444ea8"
+}
