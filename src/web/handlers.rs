@@ -22,8 +22,11 @@ use tokio_util::io::ReaderStream;
 use tracing::debug;
 use uuid::Uuid;
 
-// TODO: сделать impl IntoResponse for AppError, просто better handling ошибок
+const MAX_SIZE: usize = 10 * 1024 * 1024;
 
+// TODO: сделать impl IntoResponse for AppError, просто better handling ошибок
+// TODO: zero trust клиенту, проверять формат файла на сервере
+// TODO: strip'ать EXIF при загрузке, выбрать kamadak-exif/rexiv2
 pub async fn upload(
     Extension(auth_user): Extension<AuthUser>,
     State(state): State<AppState>,
@@ -35,6 +38,11 @@ pub async fn upload(
         .ok_or(AppError::NoFileProvided)?;
 
     let raw_name = field.file_name().ok_or(AppError::InvalidInput)?.to_string();
+
+    if raw_name.contains("/") || raw_name.contains("..") {
+        return Err(AppError::InvalidInput);
+    }
+
     let mime_type = field
         .content_type()
         .ok_or(AppError::NoMimeType)?
@@ -43,15 +51,15 @@ pub async fn upload(
     let file_extension = raw_name.split(".").last().unwrap_or("png");
     let data = field.bytes().await?;
 
-    let file_name = generate_id(5);
+    if data.len() > MAX_SIZE {
+        return Err(AppError::InvalidInput);
+    }
 
     if !mime_type.starts_with("image/") {
         return Err(AppError::InvalidInput);
     }
 
-    // let mime_guess = mime_guess::from_path(&raw_name)
-    //     .first_raw()
-    //     .ok_or(AppError::NoMimeType)?;
+    let file_name = generate_id(5);
 
     debug!(
         "Uploading file: {}.{}, mime type: {}",
@@ -82,9 +90,9 @@ pub async fn upload(
         deleted_at: None,
     };
 
-    save_image(&state.pool, &image_data).await?;
-
     tokio::fs::write(&formatted_path, data).await?;
+
+    save_image(&state.pool, &image_data).await?;
 
     Ok(Json(UploadResponse {
         url: url_path,
