@@ -7,6 +7,8 @@ mod state;
 mod utils;
 mod web;
 
+use std::time::Duration;
+
 use axum::{
     Router,
     middleware::from_fn_with_state,
@@ -15,10 +17,13 @@ use axum::{
 use sqlx::{migrate::MigrateDatabase, sqlite::SqlitePool};
 
 use state::AppState;
+use tower_governor::{GovernorLayer, governor::GovernorConfigBuilder};
 use tower_http::services::ServeDir;
 use tracing::info;
 
-use crate::{config::Config, middlewares::auth::auth, web::handlers};
+use crate::{
+    config::Config, middlewares::auth::auth, utils::key_extractor::SmartIpExtractor, web::handlers,
+};
 
 #[tokio::main]
 async fn main() {
@@ -52,20 +57,41 @@ async fn main() {
         .await
         .expect("Failed to connect to database");
 
+    let governor_conf = GovernorConfigBuilder::default()
+        .per_second(2)
+        .burst_size(5)
+        .key_extractor(SmartIpExtractor)
+        .finish()
+        .unwrap();
+
+    let governor_limiter = governor_conf.limiter().clone();
+    tokio::spawn(async move {
+        let mut interval = tokio::time::interval(Duration::from_secs(60));
+        loop {
+            interval.tick().await;
+            governor_limiter.retain_recent();
+        }
+    });
+
     let state = AppState::new(pool, config.clone());
 
-    let protected_router = Router::new()
+    let upload_router = Router::new()
         .route("/api/upload", post(handlers::upload))
+        .layer(GovernorLayer::new(governor_conf))
+        .route_layer(from_fn_with_state(state.clone(), auth));
+
+    let protected_router = Router::new()
         .route("/api/my", get(handlers::my_images))
         .route("/api/{image_id}", delete(handlers::delete_image_route))
         .route_layer(from_fn_with_state(state.clone(), auth));
 
     let app = Router::new()
+        .merge(upload_router)
         .merge(protected_router)
         .route("/health", get(handlers::health))
         .route("/upload_form", get(handlers::show_form))
         .route("/file/{file_name}", get(handlers::get_file))
-        .route("/api/stats", get(handlers::get_stats_route)) // TODO: пофиксить максимально уродливую страницу app.html со stats
+        .route("/api/stats", get(handlers::get_stats_route))
         .fallback_service(ServeDir::new("frontend"))
         .with_state(state);
 

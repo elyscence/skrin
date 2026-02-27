@@ -24,8 +24,6 @@ use uuid::Uuid;
 
 const MAX_SIZE: usize = 10 * 1024 * 1024;
 
-// TODO: сделать impl IntoResponse for AppError, просто better handling ошибок
-// TODO: zero trust клиенту, проверять формат файла на сервере
 // TODO: strip'ать EXIF при загрузке, выбрать kamadak-exif/rexiv2
 pub async fn upload(
     Extension(auth_user): Extension<AuthUser>,
