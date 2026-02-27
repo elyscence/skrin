@@ -6,7 +6,7 @@ use crate::{
     middlewares::auth::AuthUser,
     models::{file_query::FileQuery, image::Image, response::UploadResponse, stats::StatsResponse},
     state::AppState,
-    utils::gen_id::generate_id,
+    utils::{detect_format::detect_image_format, gen_id::generate_id},
 };
 
 use axum::{
@@ -43,19 +43,20 @@ pub async fn upload(
         return Err(AppError::InvalidInput);
     }
 
-    let mime_type = field
-        .content_type()
-        .ok_or(AppError::NoMimeType)?
-        .to_string();
-
-    let file_extension = raw_name.split(".").last().unwrap_or("png");
     let data = field.bytes().await?;
 
-    if data.len() > MAX_SIZE {
-        return Err(AppError::InvalidInput);
-    }
+    let real_mime = detect_image_format(&data).ok_or(AppError::InvalidInput)?;
 
-    if !mime_type.starts_with("image/") {
+    let mime_type = real_mime.to_string();
+
+    let file_extension = match real_mime {
+        "image/jpeg" => "jpg",
+        "image/png" => "png",
+        "image/webp" => "webp",
+        _ => return Err(AppError::InvalidInput),
+    };
+
+    if data.len() > MAX_SIZE {
         return Err(AppError::InvalidInput);
     }
 
